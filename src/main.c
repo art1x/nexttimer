@@ -22,6 +22,13 @@
 #include <string.h>
 #include <math.h>
 
+#ifdef PLATFORM_TG5040
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#endif
+
 
 #define SETTINGS_FILE "./settings.txt"
 
@@ -48,6 +55,54 @@ static void screen_settings(AppSettings *s);
 #define SCREEN_ON   0   /* normaler Betrieb            */
 #define SCREEN_OFF  1   /* schwarzer Bildschirm        */
 #define SCREEN_HINT 2   /* Hinweis "Select+A" für 1 s */
+
+
+// ----------------------------------------------------------------
+// Backlight-Kontrolle (nur tg5040)
+// Verwendet denselben Ansatz wie NextUI: O_RDWR + mmap auf
+// SharedSettings POSIX-SHM, dann /dev/disp ioctl.
+// ----------------------------------------------------------------
+#ifdef PLATFORM_TG5040
+#define DISP_LCD_SET_BRIGHTNESS 0x102
+#define SHM_KEY "/SharedSettings"
+
+/* Minimales Settings-Layout: version (int) + brightness (int) */
+typedef struct { int version; int brightness; } MinSettings;
+
+static void backlight_raw(int val) {
+    int fd = open("/dev/disp", O_RDWR);
+    if (fd >= 0) {
+        unsigned long param[4] = {0, (unsigned long)val, 0, 0};
+        ioctl(fd, DISP_LCD_SET_BRIGHTNESS, &param);
+        close(fd);
+    }
+}
+
+static int backlight_read_level(void) {
+    /* SharedSettings mit O_RDWR öffnen wie InitSettings() es tut */
+    int fd = shm_open(SHM_KEY, O_RDWR, 0644);
+    if (fd < 0) return 7;
+    MinSettings *s = mmap(NULL, sizeof(MinSettings),
+                          PROT_READ, MAP_SHARED, fd, 0);
+    close(fd);
+    if (s == MAP_FAILED) return 7;
+    int level = s->brightness;
+    munmap(s, sizeof(MinSettings));
+    return (level >= 0 && level <= 10) ? level : 7;
+}
+
+static void backlight_off(void) {
+    backlight_raw(0);
+}
+
+static void backlight_on(void) {
+    static const int tbl[11] = {1,8,16,32,48,72,96,128,160,192,255};
+    int level = backlight_read_level();
+    /* NextUI-Sequenz für Brick: erst Minimalwert 8, dann Zielwert */
+    backlight_raw(8);
+    backlight_raw(tbl[level]);
+}
+#endif
 
 static void render_screen_off(int show_hint) {
     int       sw  = ap_get_screen_width();
@@ -402,13 +457,18 @@ static void screen_timer(Timer *t, AppSettings *s) {
             // ── Bildschirm ist gedimmt ───────────────────────────
             if (scr != SCREEN_ON) {
                 if (ev.button == AP_BTN_A && select_held) {
-                    // Select + A → Bildschirm einschalten
                     scr        = SCREEN_ON;
                     last_input = SDL_GetTicks();
+                    ap_set_power_handler(true);
+#ifdef PLATFORM_TG5040
+                    backlight_on();
+#endif
                 } else if (scr == SCREEN_OFF) {
-                    // Beliebige andere Taste → Hinweis für 1 Sekunde
                     scr        = SCREEN_HINT;
                     hint_start = SDL_GetTicks();
+#ifdef PLATFORM_TG5040
+                    backlight_on();
+#endif
                 }
                 continue; // Taste nicht an Timer weitergeben
             }
@@ -465,8 +525,14 @@ static void screen_timer(Timer *t, AppSettings *s) {
             alert_active = 1;
             vib_step     = 0;
             vib_next_ms  = 0;
-            scr          = SCREEN_ON; // Alarm weckt Bildschirm immer auf
-            last_input   = SDL_GetTicks();
+            if (scr != SCREEN_ON) {
+                scr = SCREEN_ON;
+                ap_set_power_handler(true);
+#ifdef PLATFORM_TG5040
+                backlight_on();
+#endif
+            }
+            last_input = SDL_GetTicks();
         }
 
         // ── Alarm-Dauerschleife ──────────────────────────────────
@@ -501,12 +567,22 @@ static void screen_timer(Timer *t, AppSettings *s) {
         }
         if (scr == SCREEN_HINT && (now - hint_start) >= 1000u) {
             scr = SCREEN_OFF;
+#ifdef PLATFORM_TG5040
+            backlight_off();
+#endif
         }
-        // Power-Taste sperren wenn Display gedimmt, freigeben wenn es aufwacht
-        if (was_on && scr != SCREEN_ON)
+        // Backlight + Power-Taste beim Zustandswechsel
+        if (was_on && scr != SCREEN_ON) {
             ap_set_power_handler(false);
-        else if (!was_on && scr == SCREEN_ON)
+#ifdef PLATFORM_TG5040
+            backlight_off();
+#endif
+        } else if (!was_on && scr == SCREEN_ON) {
             ap_set_power_handler(true);
+#ifdef PLATFORM_TG5040
+            backlight_on();
+#endif
+        }
 
         // ── Rendern ──────────────────────────────────────────────
         if (scr != SCREEN_ON) {

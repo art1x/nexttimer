@@ -16,7 +16,7 @@ CFLAGS := -std=gnu11 -O2 -Wall -Wextra -Wno-unused-parameter \
 	-I/workspace/src \
 	$(SDL_CFLAGS)
 
-LDFLAGS := $(SDL_LDFLAGS) -lpthread -ldl -lm
+LDFLAGS := $(SDL_LDFLAGS) -lpthread -ldl -lm -lrt
 
 .PHONY: all clean
 
