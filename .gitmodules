@@ -1,0 +1,4 @@
+[submodule "apostrophe"]
+	path = apostrophe
+	url = https://github.com/Helaas/apostrophe.git
+	branch = main
