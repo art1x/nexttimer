@@ -48,6 +48,8 @@ make tg5040
 
 Built with [Apostrophe](https://github.com/Helaas/apostrophe) — a C UI toolkit for NextUI paks by Kevin Vranken (MIT License).
 
+This project was developed primarily with the help of [Claude Code](https://claude.ai/code) by Anthropic.
+
 ## License
 
 MIT — see [LICENSE](LICENSE)
