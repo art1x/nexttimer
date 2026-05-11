@@ -36,14 +36,6 @@ A simple countdown timer pak for TrimUI Brick running [NextUI](https://github.co
 
 Download `Next Timer.zip` from the [latest release](../../releases/latest), extract it and copy `Next Timer.pak` into the `Tools` folder on your SD card.
 
-## Building
-
-Requires Docker and the [tg5040-toolchain](https://github.com/LoveRetro/NextUI).
-
-```
-make tg5040
-```
-
 ## Credits
 
 Built with [Apostrophe](https://github.com/Helaas/apostrophe) — a C UI toolkit for NextUI paks by Kevin Vranken (MIT License).
