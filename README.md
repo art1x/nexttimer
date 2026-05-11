@@ -7,7 +7,7 @@ A simple countdown timer pak for TrimUI Brick running [NextUI](https://github.co
 - Countdown timer adjustable in 1-minute and 10-second steps
 - Audio alert (3 × beep pattern) with adjustable volume
 - Vibration alert with adjustable intensity
-- Visual alert (red background when timer expires)
+- Visual alarm (red background when timer expires)
 - Screen timeout with software dimming (Select + A to wake)
 - All settings persist between sessions
 
@@ -25,16 +25,16 @@ A simple countdown timer pak for TrimUI Brick running [NextUI](https://github.co
 
 | Setting | Description |
 |---------|-------------|
-| Ton | Sound on/off |
-| Lautstärke | Volume 1–10 |
-| Vibration | Vibration on/off |
-| Vibr.-Stärke | Vibration intensity 1–10 |
-| Bildschirm-Timeout | Screen off after: never / 10s / 30s / 1min / 2min / 5min |
-| Visueller Alarm | Red background when timer expires |
+| Sound | On / Off |
+| Volume | 1–10 |
+| Vibration | On / Off |
+| Vib. Intensity | 1–10 |
+| Screen Timeout | Never / 10 sec / 30 sec / 1 min / 2 min / 5 min |
+| Visual Alarm | Red background when timer expires (On / Off) |
 
 ## Installation
 
-Copy `Next Timer.pak` into the `Tools` folder on your SD card.
+Download `Next Timer.zip` from the [latest release](../../releases/latest), extract it and copy `Next Timer.pak` into the `Tools` folder on your SD card.
 
 ## Building
 
