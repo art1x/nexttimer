@@ -1,12 +1,12 @@
 // ================================================================
-// main.c  –  NextTimer für TrimUI Brick / NextUI
+// main.c  –  Next Timer for TrimUI Brick / NextUI
 //
-// Steuerung (Hauptbildschirm):
-//   ↑ / ↓      → ±1 Minute
-//   ← / →      → ±10 Sekunden
-//   A           → Starten / Pausieren / Fortsetzen
-//   B           → Zurücksetzen / Beenden (wenn im Leerlauf)
-//   MENU        → Einstellungen
+// Controls:
+//   ↑ / ↓      → ±1 minute
+//   ← / →      → ±10 seconds
+//   A           → Start / Pause / Resume
+//   B           → Reset / Exit (when idle)
+//   MENU        → Settings
 // ================================================================
 
 #define AP_IMPLEMENTATION
@@ -60,12 +60,12 @@ static void render_screen_off(int show_hint) {
         TTF_Font *fmed = ap_get_font(AP_FONT_MEDIUM);
         TTF_Font *fsm  = ap_get_font(AP_FONT_SMALL);
         if (fmed) {
-            const char *l1 = "Select + A drücken";
+            const char *l1 = "Press Select + A";
             ap_draw_text(fmed, l1, (sw - ap_measure_text(fmed, l1)) / 2,
                          sh / 2 - TTF_FontHeight(fmed) - AP_S(4), thm->text);
         }
         if (fsm) {
-            const char *l2 = "um den Bildschirm einzuschalten";
+            const char *l2 = "to wake the screen";
             ap_draw_text(fsm, l2, (sw - ap_measure_text(fsm, l2)) / 2,
                          sh / 2 + AP_S(4), thm->hint);
         }
@@ -146,12 +146,12 @@ static const int TIMEOUT_VALS[] = {0, 10, 30, 60, 120, 300};
 
 static const char *timeout_label(int secs) {
     switch (secs) {
-        case   0: return "Nie";
-        case  10: return "10 Sek.";
-        case  30: return "30 Sek.";
-        case  60: return "1 Min.";
-        case 120: return "2 Min.";
-        case 300: return "5 Min.";
+        case   0: return "Never";
+        case  10: return "10 sec";
+        case  30: return "30 sec";
+        case  60: return "1 min";
+        case 120: return "2 min";
+        case 300: return "5 min";
         default:  return "?";
     }
 }
@@ -224,9 +224,9 @@ static void render_timer(const Timer *t, int alert_active, const AppSettings *s)
 
         const char *status = NULL;
         ap_color    sc     = thm->hint;
-        if (t->state == TIMER_RUNNING) { status = "Läuft";    }
-        if (t->state == TIMER_PAUSED)  { status = "Pausiert"; }
-        if (t->state == TIMER_EXPIRED) { status = "ZEIT UM!"; sc = thm->accent; }
+        if (t->state == TIMER_RUNNING) { status = "Running"; }
+        if (t->state == TIMER_PAUSED)  { status = "Paused";  }
+        if (t->state == TIMER_EXPIRED) { status = "TIME UP!"; sc = thm->accent; }
 
         if (status && fmed) {
             int stw = ap_measure_text(fmed, status);
@@ -238,18 +238,18 @@ static void render_timer(const Timer *t, int alert_active, const AppSettings *s)
     const char *hint = "";
     switch (t->state) {
         case TIMER_IDLE:
-            hint = "↑↓:±1Min  ←→:±10Sek  A:Starten  Menu:Einst.  B:Ende";
+            hint = "↑↓:±1Min  ←→:±10Sec  A:Start  Menu:Settings  B:Exit";
             break;
         case TIMER_RUNNING:
-            hint = "A:Pause  B:Abbrechen  Menu:Einst.";
+            hint = "A:Pause  B:Cancel  Menu:Settings";
             break;
         case TIMER_PAUSED:
-            hint = "A:Fortsetzen  B:Abbrechen  Menu:Einst.";
+            hint = "A:Resume  B:Cancel  Menu:Settings";
             break;
         case TIMER_EXPIRED:
             hint = alert_active
-                   ? "Beliebige Taste: Alarm beenden"
-                   : "Beliebige Taste: Nochmal  B:Beenden";
+                   ? "Any button: stop alarm"
+                   : "Any button: restart  B:Exit";
             break;
     }
     if (fsm && hint[0]) {
@@ -266,22 +266,22 @@ static void render_timer(const Timer *t, int alert_active, const AppSettings *s)
 // ----------------------------------------------------------------
 static void render_settings(int cursor, const AppSettings *s) {
     static const char *labels[6] = {
-        "Ton", "Lautstärke", "Vibration", "Vibr.-Stärke",
-        "Bildschirm-Timeout", "Visueller Alarm"
+        "Sound", "Volume", "Vibration", "Vib. Intensity",
+        "Screen Timeout", "Visual Alarm"
     };
     static const int is_numeric[6] = {1, 1, 1, 1, 1, 1};
 
     char vals[6][32];
-    snprintf(vals[0], sizeof(vals[0]), "%s",      s->sound_enabled     ? "Ein" : "Aus");
+    snprintf(vals[0], sizeof(vals[0]), "%s",      s->sound_enabled     ? "On" : "Off");
     snprintf(vals[1], sizeof(vals[1]), "%d / 10", s->volume);
-    snprintf(vals[2], sizeof(vals[2]), "%s",      s->vibration_enabled ? "Ein" : "Aus");
+    snprintf(vals[2], sizeof(vals[2]), "%s",      s->vibration_enabled ? "On" : "Off");
     snprintf(vals[3], sizeof(vals[3]), "%d / 10", s->vibration_intensity);
     snprintf(vals[4], sizeof(vals[4]), "%s",      timeout_label(s->screen_timeout));
-    snprintf(vals[5], sizeof(vals[5]), "%s",      s->visual_alert      ? "Ein" : "Aus");
+    snprintf(vals[5], sizeof(vals[5]), "%s",      s->visual_alert      ? "On" : "Off");
 
     ap_draw_background();
     ap_draw_status_bar(&g_status_bar);
-    ap_draw_screen_title("Einstellungen", &g_status_bar);
+    ap_draw_screen_title("Settings", &g_status_bar);
 
     int       sw  = ap_get_screen_width();
     int       sh  = ap_get_screen_height();
@@ -317,7 +317,7 @@ static void render_settings(int cursor, const AppSettings *s) {
         ap_draw_text(fm, vbuf, sw - pad_x - vw, iy, tc);
     }
 
-    const char *hint = "↑↓:Auswahl   ←→:Wert ändern   B:Zurück";
+    const char *hint = "↑↓:Select   ←→:Change value   B:Back";
     int hw = ap_measure_text(fsm, hint);
     ap_draw_text(fsm, hint, (sw - hw) / 2,
                  sh - TTF_FontHeight(fsm) - AP_S(10), thm->hint);
