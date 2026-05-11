@@ -8,7 +8,7 @@ A simple countdown timer pak for TrimUI Brick running [NextUI](https://github.co
 - Audio alert (3 × beep pattern) with adjustable volume
 - Vibration alert with adjustable intensity
 - Visual alarm (red background when timer expires)
-- Screen timeout with software dimming (Select + A to wake)
+- Screen timeout (Select + A to wake)
 - All settings persist between sessions
 
 ## Controls
