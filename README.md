@@ -1,6 +1,6 @@
 # Next Timer
 
-A simple countdown timer pak for TrimUI Brick running [NextUI](https://github.com/LoveRetro/NextUI).
+A simple countdown timer pak for TrimUI Brick/hammer running [NextUI](https://github.com/LoveRetro/NextUI).
 
 ## Features
 
