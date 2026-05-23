@@ -5,7 +5,6 @@ typedef struct {
     int volume;              /* 1-10 */
     int vibration_enabled;
     int vibration_intensity; /* 1-10 */
-    int screen_timeout;      /* Sekunden bis Display aus, 0 = nie */
     int visual_alert;        /* 0 = aus, 1 = rotes Blinken bei Ablauf */
 } AppSettings;
 

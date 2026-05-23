@@ -27,3 +27,7 @@ void timer_reset(Timer *t);
 void timer_tick(Timer *t, uint32_t now_ms);
 int  timer_display_minutes(const Timer *t);
 int  timer_display_seconds(const Timer *t);
+
+/* Stellt den Timer mit gespeichertem Zustand wieder her (nach App-Neustart). */
+void timer_restore(Timer *t, int remaining_ms, int total_ms,
+                   int set_minutes, int set_seconds, uint32_t now_ms);

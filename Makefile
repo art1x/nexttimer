@@ -7,7 +7,10 @@ TG5040_TOOLCHAIN := ghcr.io/loveretro/tg5040-toolchain:latest
 DOCKER          ?= $(shell command -v docker 2>/dev/null || echo "flatpak-spawn --host docker")
 
 WARN_CFLAGS := -Wall -Wextra -Wno-unused-parameter
-SRCS        := $(shell find $(SRC_DIR) -name '*.c')
+
+# bg.c wird als separates Binary gebaut — nicht in die Hauptanwendung linken
+BG_SRC    := $(SRC_DIR)/bg.c
+MAIN_SRCS := $(filter-out $(BG_SRC), $(shell find $(SRC_DIR) -name '*.c'))
 
 TMP_PAK  := $(BUILD_DIR)/tg5040/nexttimer.pak
 FINAL_PAK := $(BUILD_DIR)/tg5040/Next Timer.pak
@@ -21,16 +24,25 @@ linux:
 		-I$(INCLUDE_DIR) -I$(SRC_DIR) \
 		$(shell pkg-config --cflags sdl2 SDL2_ttf SDL2_image) \
 		-o $(BUILD_DIR)/linux/nexttimer \
-		$(SRCS) \
+		$(MAIN_SRCS) \
 		$(shell pkg-config --libs sdl2 SDL2_ttf SDL2_image) \
 		-lm -lpthread
+	cc -std=gnu11 -O0 -g $(WARN_CFLAGS) \
+		-DPLATFORM_LINUX \
+		-I$(SRC_DIR) \
+		$(shell pkg-config --cflags sdl2) \
+		-o $(BUILD_DIR)/linux/nexttimer-bg \
+		$(BG_SRC) \
+		$(shell pkg-config --libs sdl2) \
+		-lm -lpthread
 	@echo "→ $(BUILD_DIR)/linux/nexttimer"
+	@echo "→ $(BUILD_DIR)/linux/nexttimer-bg"
 
 tg5040:
 	@mkdir -p '$(TMP_PAK)'
 	$(DOCKER) run --rm \
-		-v "$(CURDIR)":/workspace \
-		-v "$(shell realpath $(APOSTROPHE))":/workspace/apostrophe \
+		-v "$(CURDIR)":/workspace:Z \
+		-v "$(shell realpath $(APOSTROPHE))":/workspace/apostrophe:Z \
 		$(TG5040_TOOLCHAIN) \
 		make -C /workspace -f ports/tg5040/Makefile \
 			BUILD_DIR=/workspace/$(TMP_PAK)

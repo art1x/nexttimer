@@ -74,3 +74,15 @@ int timer_display_minutes(const Timer *t) {
 int timer_display_seconds(const Timer *t) {
     return (t->remaining_ms / 1000) % 60;
 }
+
+void timer_restore(Timer *t, int remaining_ms, int total_ms,
+                   int set_minutes, int set_seconds, uint32_t now_ms) {
+    /* Wiederherstellen nach App-Neustart: Timer läuft weiter mit gespeicherter
+     * Restzeit.  set_minutes/set_seconds bestimmen was Reset danach macht. */
+    t->remaining_ms  = remaining_ms;
+    t->total_ms      = total_ms;
+    t->set_minutes   = set_minutes;
+    t->set_seconds   = set_seconds;
+    t->state         = TIMER_RUNNING;
+    t->last_tick_ms  = now_ms;
+}
