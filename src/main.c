@@ -774,6 +774,20 @@ static void screen_timer(Timer *t, Stopwatch *sw_init, AppSettings *s) {
 
                 /* B: App beenden — Timer/Stoppuhr laufen im Hintergrund weiter falls aktiv */
                 if (ev.button == AP_BTN_B) {
+                    /* Falls der Alarm gerade läuft, ZUERST den Alarm beenden:
+                     * Audio-Device schließen UND Vibrations-Motor abschalten.
+                     * Sonst bliebe gpio227 auf 1 hängen, weil dieser B-Pfad
+                     * sofort `return`-t und die Dismiss-Logik weiter unten
+                     * (Zeile ~806) nie erreicht wird. */
+                    if (alert_active) {
+                        alert_active = 0;
+                        if (alert_dev) { SDL_CloseAudioDevice(alert_dev); alert_dev = 0; }
+#ifdef PLATFORM_TG5040
+                        vib_set(0, s->vibration_intensity);
+                        vib_on = 0;
+#endif
+                        vib_step = 0;
+                    }
                     if (t->state == TIMER_RUNNING || t->state == TIMER_PAUSED || sw_state.running)
                         save_state_and_launch_daemon(t, &sw_state, SDL_GetTicks());
                     return;
