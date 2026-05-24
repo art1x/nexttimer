@@ -15,10 +15,32 @@
 #include <string.h>
 #include <unistd.h>
 #include <math.h>
+#include <signal.h>
 
 #define ALERT_BEEP_MS  300
 #define ALERT_GAP_MS   200
 #define ALERT_PULSES   3
+
+#ifdef PLATFORM_TG5040
+/* Schreibt gpio227 (Vibrations-Motor) auf 0.  Wird auch im Signal-Handler
+ * benutzt — async-signal-safe ist `write(2)` auf einen offenen FD, aber
+ * `fopen`/`fprintf` sind es nicht.  Für unseren Use-Case (Daemon-Cleanup
+ * bei SIGTERM) ist das ein akzeptabler Kompromiss, da der Daemon ohnehin
+ * gleich beendet wird. */
+static void motor_off(void) {
+    FILE *f = fopen("/sys/class/gpio/gpio227/value", "w");
+    if (f) { fprintf(f, "0\n"); fclose(f); }
+}
+
+/* SIGTERM/SIGINT-Handler: Motor abschalten und sofort beenden.  Verhindert
+ * dass die Vibration weiterläuft, wenn der Daemon mitten in einem Puls
+ * gekillt wird (z.B. vom Haupt-Prozess beim Neustart). */
+static void cleanup_and_exit(int sig) {
+    (void)sig;
+    motor_off();
+    _exit(0);
+}
+#endif
 
 /* Liest einen Integer-Wert aus einer "key=value"-Datei. */
 static int read_setting(const char *path, const char *key, int fallback) {
@@ -105,6 +127,19 @@ int main(int argc, char *argv[]) {
     int         remaining_s   = atoi(argv[1]);
     const char *settings_path = argv[2];
     const char *state_path    = argv[3];
+
+#ifdef PLATFORM_TG5040
+    /* Signal-Handler installieren BEVOR Vibration starten kann.  Wenn der
+     * Haupt-Prozess uns mitten in einem Vibrations-Puls killt, schaltet der
+     * Handler den Motor sauber ab — sonst bliebe gpio227 auf 1 hängen. */
+    struct sigaction sa = {0};
+    sa.sa_handler = cleanup_and_exit;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;   /* KEIN SA_RESTART — sleep()/usleep() sollen unterbrochen werden */
+    sigaction(SIGTERM, &sa, NULL);
+    sigaction(SIGINT,  &sa, NULL);
+    sigaction(SIGHUP,  &sa, NULL);
+#endif
 
     /* Auf Timer-Ende warten.  SIGTERM vom Haupt-Prozess beim Neustart
      * unterbricht sleep() — Daemon beendet sich dann sofort. */

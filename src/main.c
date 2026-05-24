@@ -105,6 +105,17 @@ static void restore_state(Timer *t, Stopwatch *sw) {
         long elapsed_ms = (long)(time(NULL) - (time_t)exit_time) * 1000L;
         int  corrected  = remaining_ms - (int)elapsed_ms;
         kill(pid, SIGTERM);   /* Daemon stoppen — wir übernehmen den Timer wieder */
+
+#ifdef PLATFORM_TG5040
+        /* Defensiv den Motor abschalten — falls der Daemon mitten in einem
+         * Vibrations-Puls war und sein eigener Signal-Handler aus irgendeinem
+         * Grund nicht durchkam, bleibt sonst gpio227 auf 1 hängen. */
+        {
+            FILE *gf = fopen("/sys/class/gpio/gpio227/value", "w");
+            if (gf) { fprintf(gf, "0\n"); fclose(gf); }
+        }
+#endif
+
         if (corrected > 0) {
             timer_restore(t, corrected, total_ms, set_min, set_sec, SDL_GetTicks());
         } else {
@@ -797,7 +808,12 @@ static void screen_timer(Timer *t, Stopwatch *sw_init, AppSettings *s) {
                             alert_active = 0;
                             if (alert_dev) { SDL_CloseAudioDevice(alert_dev); alert_dev = 0; }
 #ifdef PLATFORM_TG5040
-                            if (vib_on) { vib_set(0, s->vibration_intensity); vib_on = 0; }
+                            /* Motor IMMER abschalten, auch wenn unser C-State `vib_on==0`
+                             * meint — eine frühere gpio-Schreibung könnte still gefehlt
+                             * haben (fopen() == NULL).  Unconditional schreibt 0 ist
+                             * idempotent und garantiert: nach Dismiss ist der Motor aus. */
+                            vib_set(0, s->vibration_intensity);
+                            vib_on = 0;
 #endif
                             vib_step = 0;
                         }
@@ -933,7 +949,11 @@ static void screen_timer(Timer *t, Stopwatch *sw_init, AppSettings *s) {
                 save_state_and_launch_daemon(t, &sw_state, SDL_GetTicks());
             if (alert_dev) { SDL_CloseAudioDevice(alert_dev); alert_dev = 0; }
 #ifdef PLATFORM_TG5040
-            if (vib_on) { vib_set(0, s->vibration_intensity); vib_on = 0; }
+            /* Beim Beenden den Motor IMMER abschalten — der nachfolgende Daemon
+             * übernimmt die Vibration ggf. neu, also darf hier nichts hängen
+             * bleiben. */
+            vib_set(0, s->vibration_intensity);
+            vib_on = 0;
 #endif
             break;
         }
